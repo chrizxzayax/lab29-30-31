@@ -1,0 +1,28 @@
+Project Overview:
+this project creates a clownfish environment simulation being affected by pollution for 12 years. the software's idea is to demonstrate
+the imminent damage and possible extinction of an often overlooked part of our planet, the coral reefs across the world and one of its
+most delicate species, the clownfish. Is important to try to understand the gravity of the imbalance of nature that we keep prolonging
+
+Implementation
+the primary container will be std::map<string, std::list<clownfish>, 3>>
+	map key
+	map value an std::array containing three std::lists: index 0: juveniles < 6 months
+						             index 1: Adults 6-60 months
+							     index 2: seniors > 60 months
+
+-clownfish variable example: id, agemonths, health (0-1), tolerance to pollution (0-1)
+
+-environment: waterquality, companion std::map<string, ZoneEnv>
+
+-time period rate (steps) monthly discrete events. total simulation length is 12 years
+
+
+simulation processes (per step)
+
+	updateenvironment, adjust waterquality
+	simulate mortality, compute and apply mortality per fish
+	simulate reproduction, adults produce juveniles and depends on waterquality and local crowding
+	age and transfer, increment fish ages and move individuals among three std::lists when they cross the treshholds (juvenile, adult, senior)
+	maymigrate, an extra variable (might not add)
+	printreport (snapshot) monthly neatly display the current map state perzone, age class and waterquality and sample individuals.
+
