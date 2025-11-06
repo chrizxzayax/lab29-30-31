@@ -10,6 +10,9 @@
 #include <string>
 #include <list>
 #include <map>
+#include <array>
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 
@@ -87,10 +90,21 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
   ifstream fin(filename);
   if(fin){
     string line;
-    int line_count = 0;
+    int lines = 0;
     while(getline(fin, line)){
       if(line.empty()) continue;
-      ++line_count;
+      ++lines;
+      stringstream ss(line);
+      string zone,name,age_s,health_s,tol_s,sex_s;
+      if(!getline(ss, zone, ',')) continue;
+      if(!getline(ss, name, ',')) continue;
+      if(!getline(ss, age_s, ',')) continue;
+      if(!getline(ss, health_s, ',')) continue;
+      if(!getline(ss, tol_s, ',')) continue;
+      if(!getline(ss, sex_s, ',')) continue;
+         sex_s = "M";
+      }
+      int age = stoi(age_s);
 
   }
     return true; 
