@@ -79,6 +79,7 @@ using EnvMap  = map<string, ZoneEnv>;
 // RNG helper function prototype
 static std::mt19937 rng_engine((unsigned)time(nullptr)); // Seed with current time or fixed seed for testing
 inline double uniform01() { return std::uniform_real_distribution<double>(0.0, 1.0)(rng_engine); }// I arbirtrarily chose 0.0 to 1.0 as the ranges
+inline int randint(int a, int b){ return std::uniform_int_distribution<int>(a, b)(rng_engine); }
 
 int age_bucket(int age_months) {
     if (age_months < JUVENILE_AGE_THRESHOLD) return 0;
@@ -138,16 +139,15 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
   }
       int total_needed = 120;
       for(int i=0;i<total_needed;++i){
-
-        string zone = zones[randint(0,(int)zones.size()-1)];
-        string id = make_id(serial++);
-        int age = randint(0,72);
-        double health = 0.5 + 0.5 * uniform01();
-        double tol = 0.2 + 0.6 * uniform01();
-        char sex = (uniform01() < 0.5) ? 'M' : 'F';
-        Clownfish cf(id, age, health, tol, sex);
-        int idx = age_bucket(age);
-        lake_map[zone][idx].push_back(cf);
+          string zone = zones[randint(0,(int)zones.size()-1)];
+          string id = make_id(serial++);
+          int age = randint(0,72);
+          double health = 0.7 + 0.3 * uniform01();
+          double tol = 0.2 + 0.8 * uniform01();
+          char sex = (uniform01() < 0.5) ? 'M' : 'F';
+          Clownfish cf(id, age, health, tol, sex);
+          int idx = age_bucket(age);
+          lake_map[zone][idx].push_back(cf);
       }
   return true;
 }
@@ -159,6 +159,18 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
 //           - water_quality (formatted decimal), counts J/A/S, total
 //           - optionally list 1-3 sample fish per class with (id, age, health, tolerance)
 // - Use setw and aligned columns for neatness
+
+void print_snapshot(int month, const LakeMap &lake_map, const EnvMap &env_map){
+  int year = (month) / MONTHS_PER_YEAR;
+  cout << "///////////////////////////////////////////////////\n";
+  cout << "Snapshot - Month: " << month << " Year: " << year << "\n";
+  cout << left << setw(14) << "Zone" 
+       << setw(16) << "Water Quality" 
+       << setw(8) << "Juveniles" 
+       << setw(8) << "Adults" 
+       << setw(8) << "Seniors" 
+       << setw(8) << "Total" << "\n";
+}
 
 // 3) update_zone_environment
 // - Input: ZoneEnv &env, current month
@@ -212,6 +224,9 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
 int main_driver(const string &filename) {
   LakeMap lake_map;
   EnvMap env_map;
+
+    load_initial_data(filename, lake_map, env_map);
+
   if(!load_initial_data(filename, lake_map, env_map)){
     cerr << "Error loading initial data from " << filename << endl;
     return 1;
