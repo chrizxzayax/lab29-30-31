@@ -14,6 +14,7 @@
 #include <fstream>
 #include <sstream>
 
+
 using namespace std;
 
 
@@ -102,12 +103,25 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
       if(!getline(ss, health_s, ',')) continue;
       if(!getline(ss, tol_s, ',')) continue;
       if(!getline(ss, sex_s, ',')) continue;
+      {
          sex_s = "M";
       }
       int age = stoi(age_s);
-
-  }
-    return true; 
+      double health = stod(health_s);
+      double tol = stod(tol_s);
+      char sex = sex_s.empty() ? 'M' : sex_s[0];
+      Clownfish cf(name, age, health, tol, sex);
+      if(lake_map.find(zone) == lake_map.end())
+      {
+        lake_map[zone] = ZoneValue();
+        env_map[zone] = ZoneEnv();
+      }
+      int bucket = age_bucket(age);
+      lake_map[zone][bucket].push_back(cf);
+    }
+    fin.close();
+    if(lines >= 100)
+    return true;
 }
 // 2) print_snapshot
 // - Input: month (int), lake_map, env_map
@@ -177,8 +191,10 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
 
 
 int main(int argc, char** argv) {
-    // In real code: parse command line args for filename and options (e.g., seed, months)
-    // Example: string filename = "clownfish_initial.csv";
-    // return main_driver(filename);
   string filename = "clownfish_initial.csv";
-}
+  if(argc > 1){
+    filename = argv[1];
+  }
+  int rc = main_driver(filename);
+  return rc;
+} 
