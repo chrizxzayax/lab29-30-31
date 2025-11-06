@@ -76,7 +76,17 @@ int age_bucket(int age_months) {
     else if (age_months < SENIOR_AGE_THRESHOLD) return 1;
     else return 2;
 }
+string make_id(int serial){
+    char buffer[32];
+    snprintf(buffer, sizeof(buffer), "CF%04d", serial);
+    return string(buffer);
+}
 
+// load initial data
+bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_map) {
+    // Implementation goes here
+    return true; // placeholder
+}
 // 2) print_snapshot
 // - Input: month (int), lake_map, env_map
 // - Output formatted console text:
@@ -143,12 +153,10 @@ int age_bucket(int age_months) {
 // - void ensure_zone_exists(lake_map, env_map, const string &zone) -> helper to initialize structures
 // - File parsing helpers and validation helpers
 
-// -------------------------
-// main() skeleton - will call main_driver(filename)
-// -------------------------
-int main() {
+
+int main(int argc, char** argv) {
     // In real code: parse command line args for filename and options (e.g., seed, months)
     // Example: string filename = "clownfish_initial.csv";
     // return main_driver(filename);
-
+  string filename = "clownfish_initial.csv";
 }
