@@ -84,8 +84,16 @@ string make_id(int serial){
 
 // load initial data
 bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_map) {
-    // Implementation goes here
-    return true; // placeholder
+  ifstream fin(filename);
+  if(fin){
+    string line;
+    int line_count = 0;
+    while(getline(fin, line)){
+      if(line.empty()) continue;
+      ++line_count;
+
+  }
+    return true; 
 }
 // 2) print_snapshot
 // - Input: month (int), lake_map, env_map
