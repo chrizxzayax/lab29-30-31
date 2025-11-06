@@ -5,6 +5,7 @@
 // the actual simulation functions in separate milestones.
 
 #include <iostream>
+#include <random>
 #include <vector>
 #include <string>
 #include <list>
@@ -12,14 +13,14 @@
 
 using namespace std;
 
+
+  const int MONTHS_PER_YEAR = 12;
+  const int TOTAL_YEARS = 12;
+  const int TOTAL_MONTHS = 144;
+  const int JUVENILE_AGE_THRESHOLD = 6;
+  const int SENIOR_AGE_THRESHOLD = 60;
+  const double BASE_REPRO_RATE = 0.25;
 /*
-  Global constants (tweakable)
-  MONTHS_PER_YEAR = 12
-  TOTAL_YEARS = 12
-  TOTAL_MONTHS = 144
-  JUVENILE_AGE_THRESHOLD = 6
-  SENIOR_AGE_THRESHOLD = 60
-  BASE_REPRO_RATE = 0.25
   NATURAL_MORTALITY = 0.005
   POLLUTION_MORT_MULT = 0.6
   OVERCROWDING_CAPACITY = 50
@@ -35,14 +36,20 @@ struct Clownfish {
     double health;      // 0.0 .. 1.0
     double tolerance;   // 0.0 .. 1.0 (higher = more pollution tolerant)
     char sex;           // 'M' or 'F' (optional)
-    // Constructor(s) will be implemented in actual code:
-    // Clownfish(string id_, int age_, double health_, double tol_, char sex_);
+    Clownfish(const string &id_, int age_, double health_, double tol_, char sex_)
+        : id(id_), age_months(age_), health(health_), tolerance(tol_), sex(sex_) {}
+};
+
+struct ZoneEnv {
+    double water_quality;   // 0.0 (poor) .. 1.0 (excellent)
+    double pollution_rate;  // rate of pollution increase per month
+    ZoneEnv() : water_quality(1.0), pollution_rate(0.01) {}
 };
 
 // Top-level structures:
-// using ZoneValue = array<list<Clownfish>, 3>;
-// using LakeMap = map<string, ZoneValue>;
-// using EnvMap  = map<string, ZoneEnv>;
+using ZoneValue = array<list<Clownfish>, 3>;
+using LakeMap = map<string, ZoneValue>;
+using EnvMap  = map<string, ZoneEnv>;
 
 // -------------------------
 // Function prototypes (what each will do)
@@ -59,6 +66,10 @@ struct Clownfish {
 // - Count lines read; if < 100 -> return error or warning
 // - Validate fields and handle malformed lines gracefully
 // - Use deterministic RNG seed option for testing
+
+// RNG helper function prototype
+static std::mt19937 rng_engine((unsigned)time(nullptr)); // Seed with current time or fixed seed for testing
+inline double uniform01() { return std::uniform_real_distribution<double>(0.0, 1.0)(rng_engine); }// [0.0, 1.0) uniform random
 
 // 2) print_snapshot
 // - Input: month (int), lake_map, env_map
