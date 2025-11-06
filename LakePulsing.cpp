@@ -69,7 +69,13 @@ using EnvMap  = map<string, ZoneEnv>;
 
 // RNG helper function prototype
 static std::mt19937 rng_engine((unsigned)time(nullptr)); // Seed with current time or fixed seed for testing
-inline double uniform01() { return std::uniform_real_distribution<double>(0.0, 1.0)(rng_engine); }// [0.0, 1.0) uniform random
+inline double uniform01() { return std::uniform_real_distribution<double>(0.0, 1.0)(rng_engine); }// I arbirtrarily chose 0.0 to 1.0 as the ranges
+
+int age_bucket(int age_months) {
+    if (age_months < JUVENILE_AGE_THRESHOLD) return 0;
+    else if (age_months < SENIOR_AGE_THRESHOLD) return 1;
+    else return 2;
+}
 
 // 2) print_snapshot
 // - Input: month (int), lake_map, env_map
