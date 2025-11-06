@@ -5,15 +5,20 @@
 // the actual simulation functions in separate milestones.
 
 #include <iostream>
-#include <random>
-#include <vector>
-#include <string>
-#include <list>
-#include <map>
-#include <array>
 #include <fstream>
 #include <sstream>
-
+#include <string>
+#include <map>
+#include <array>
+#include <list>
+#include <vector>
+#include <random>
+#include <ctime>
+#include <iomanip>
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
+#include <cstdio>
 
 using namespace std;
 
@@ -24,12 +29,12 @@ using namespace std;
   const int JUVENILE_AGE_THRESHOLD = 6;
   const int SENIOR_AGE_THRESHOLD = 60;
   const double BASE_REPRO_RATE = 0.25;
-/*
-  NATURAL_MORTALITY = 0.005
-  POLLUTION_MORT_MULT = 0.6
-  OVERCROWDING_CAPACITY = 50
-  SNAPSHOT_INTERVAL = 12
-*/
+
+  const double NATURAL_MORTALITY = 0.005;
+  const double POLLUTION_MORT_MULT = 0.6;
+  const int OVERCROWDING_CAPACITY = 50;
+  const int SNAPSHOT_INTERVAL = 12;
+
 
 // -------------------------
 // Data types
@@ -122,6 +127,29 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
     fin.close();
     if(lines >= 100)
     return true;
+  }
+  vector<string> zones = {"Inlet", "ReefNorth", "ReefSouth", "DeepPool", "Outlet"};
+  int serial = 1;
+  for(size_t z=0; z<zones.size(); ++z){
+    lake_map[zones[z]] = ZoneValue{};
+    env_map[zones[z]] = ZoneEnv{};
+    env_map[zones[z]].pollution_rate = 0.005 + 0.01 * static_cast<double>(z);
+    
+  }
+      int total_needed = 120;
+      for(int i=0;i<total_needed;++i){
+
+        string zone = zones[randint(0,(int)zones.size()-1)];
+        string id = make_id(serial++);
+        int age = randint(0,72);
+        double health = 0.5 + 0.5 * uniform01();
+        double tol = 0.2 + 0.6 * uniform01();
+        char sex = (uniform01() < 0.5) ? 'M' : 'F';
+        Clownfish cf(id, age, health, tol, sex);
+        int idx = age_bucket(age);
+        lake_map[zone][idx].push_back(cf);
+      }
+  return true;
 }
 // 2) print_snapshot
 // - Input: month (int), lake_map, env_map
@@ -181,6 +209,16 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
 //         - for each zone: simulate_mortality(...), births = simulate_reproduction(...), age_and_transfer(...)
 //         - if month % SNAPSHOT_INTERVAL == 0: print_snapshot(month,...)
 //     - print final summary and optionally write CSV logs
+int main_driver(const string &filename) {
+  LakeMap lake_map;
+  EnvMap env_map;
+  if(!load_initial_data(filename, lake_map, env_map)){
+    cerr << "Error loading initial data from " << filename << endl;
+    return 1;
+  }
+  // Further implementation of the driver function goes here...
+  return 0;
+}
 
 // 9) Utility helpers (small functions)
 // - int age_bucket(int age_months) -> returns 0/1/2
@@ -196,5 +234,6 @@ int main(int argc, char** argv) {
     filename = argv[1];
   }
   int rc = main_driver(filename);
+  cout << "LakePulsing ALPHA - finished.\n";
   return rc;
 } 
