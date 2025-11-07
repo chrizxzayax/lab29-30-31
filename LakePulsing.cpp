@@ -199,14 +199,28 @@ array<int, 3> simulate_mortality(ZoneValue &zv, const ZoneEnv &env) {
 
 
 // 5) simulate_reproduction
-int simulate_reproduction(const ZoneValue &zv, const ZoneEnv &env, int &serial_counter) {
+int simulate_reproduction(ZoneValue &zv, const ZoneEnv &env) {
     int adult_count = (int)zv[1].size();
+
     if(adult_count == 0) return 0;
+
     double env_suit = env.water_quality;
     int total = (int)(zv[0].size() + zv[1].size() + zv[2].size());
     double overcrowd = max(0.0, (double)(total - OVERCROWDING_CAPACITY) / OVERCROWDING_CAPACITY);
     double expected_births = BASE_REPRO_RATE * adult_count * env_suit * exp(-overcrowd);
     int births = (int)floor(expected_births + uniform01());
+    static int birth_serial = 0;
+
+    for (int i=0;i<births;++i){
+        string id = make_id(birth_serial++);
+        int age = 0;
+        double health = 0.7 + 0.2 * uniform01();
+        double tol = 0.2 + 0.6 * uniform01();
+        char sex = (uniform01() < 0.5) ? 'M' : 'F';
+        Clownfish baby(id, age, health, tol, sex);
+        zv[0].push_back(baby);
+    }
+    return births;
 }
 
 // 6) age_and_transfer
@@ -245,51 +259,23 @@ int main_driver(const string &filename) {
           const string &zone = p.first;
           ZoneValue &zv = p.second;
           auto itenv = env_map.find(zone);
-          if(itenv == env_map.end()) continue;
-          ZoneEnv &env = itenv->second;
-          simulate_mortality(zv, env);
-          int births = simulate_reproduction(zv, env, month);
-          for(int b=0;b<births;++b){
-              string id = make_id(month * 1000 + b);
-              Clownfish cf(id, 0, 1.0, 0.5 + 0.5 * uniform01(), (uniform01() < 0.5) ? 'M' : 'F');
-              zv[0].push_back(cf);
-          }
-          // age and transfer
-          // juveniles to adults
-          for(auto it = zv[0].begin(); it != zv[0].end(); ){
-              it->age_months++;
-              if(it->age_months >= JUVENILE_AGE_THRESHOLD){
-                  zv[1].push_back(*it);
-                  it = zv[0].erase(it);
-              } else {
-                  ++it;
-              }
-          }
-          // adults to seniors
-          for(auto it = zv[1].begin(); it != zv[1].end(); ){
-              it->age_months++;
-              if(it->age_months >= SENIOR_AGE_THRESHOLD){
-                  zv[2].push_back(*it);
-                  it = zv[1].erase(it);
-              } else {
-                  ++it;
-              }
-          }
-          // seniors age
-          for(auto &f : zv[2]){
-              f.age_months++;
+          if(itenv != env_map.end()){
+              const ZoneEnv &env = itenv->second;
+              simulate_mortality(zv, env);
+              simulate_reproduction(zv, env);
+              // age_and_transfer(zv); // to be implemented
           }
       }
       if(month % SNAPSHOT_INTERVAL == 0){
           print_snapshot(month, lake_map, env_map);
       }
   }
-
   if(!load_initial_data(filename, lake_map, env_map)){
     cerr << "Error loading initial data from " << filename << endl;
     return 1;
   }
   return 0;
+  
 }
 
 // 9) Utility helpers (small functions)
