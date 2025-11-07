@@ -52,7 +52,7 @@ struct Clownfish {
 struct ZoneEnv {
     double water_quality;   // 0.0 (poor) .. 1.0 (excellent)
     double pollution_rate;  // rate of pollution increase per month
-    ZoneEnv() : water_quality(1.0), pollution_rate(0.01) {}
+    ZoneEnv() : water_quality(0.9), pollution_rate(0.01) {}
 };
 
 // Top-level structures:
@@ -61,14 +61,14 @@ using LakeMap = map<string, ZoneValue>;
 using EnvMap  = map<string, ZoneEnv>;
 
 // RNG helper function prototype
-static std::mt19937 rng_engine((unsigned)time(nullptr)); // Seed with current time or fixed seed for testing
+static std::mt19937 rng_engine; // Seed with current time or fixed seed for testing
 inline double uniform01() { return std::uniform_real_distribution<double>(0.0, 1.0)(rng_engine); }// I arbirtrarily chose 0.0 to 1.0 as the ranges
 inline int randint(int a, int b){ return std::uniform_int_distribution<int>(a, b)(rng_engine); }
 
 int age_bucket(int age_months) {
-    if (age_months < JUVENILE_AGE_THRESHOLD) return 0;
-    else if (age_months < SENIOR_AGE_THRESHOLD) return 1;
-    else return 2;
+    if(age_months < JUVENILE_AGE_THRESHOLD) return 0;
+    if(age_months < SENIOR_AGE_THRESHOLD) return 1;
+    return 2;
 }
 string make_id(int serial){
     char buffer[32];
@@ -79,13 +79,14 @@ string make_id(int serial){
 // load initial data
 bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_map) {
   ifstream fin(filename);
+  int lines = 0;
   if(fin){
     string line;
-    int lines = 0;
+    bool header_skipped = false;
     while (getline(fin, line)) {
-    if (line.empty()) continue;
+        if (line.empty()) continue;
     // Peek first token before parsing; header expected like: zone,name,age_months,health,tolerance,sex
-    string firstToken;
+        string firstToken;
     {
         string tmp = line;
         stringstream ss(tmp);
@@ -94,10 +95,10 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
     // Case-insensitive check for "zone" or "Zone"
     string firstLower = firstToken;
     transform(firstLower.begin(), firstLower.end(), firstLower.begin(), ::tolower);
-    if (firstLower == "zone" || firstLower == "zone ") {
-        // this is a header line: skip it and continue with next lines
-    } else {
-        // not a header: process this line as data
+    if(!header_skipped && (firstLower == "zone" || firstLower == "zone ")) {
+                header_skipped = true;
+                continue;
+    }
         stringstream ss(line);
         string zone,name,age_s,health_s,tol_s,sex_s;
         if(!getline(ss,zone,',')) continue;
@@ -106,25 +107,29 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
         if(!getline(ss,health_s,',')) continue;
         if(!getline(ss,tol_s,',')) continue;
         if(!getline(ss,sex_s,',')) sex_s = "M";
-        // parse values and push into maps (same code as before)
-        int age = stoi(age_s);
-        double health = stod(health_s);
-        double tol = stod(tol_s);
-        char sex = sex_s.empty() ? 'M' : sex_s[0];
-        Clownfish cf(name, age, health, tol, sex);
-        if(lake_map.find(zone)==lake_map.end()){
-            lake_map[zone] = ZoneValue{};
-            env_map[zone] = ZoneEnv{};
-        }
-        int idx = age_bucket(age);
-        lake_map[zone][idx].push_back(cf);
-        ++lines;
+        try {
+                int age = stoi(age_s);
+                double health = stod(health_s);
+                double tol = stod(tol_s);
+                char sex = sex_s.empty() ? 'M' : sex_s[0];
+                Clownfish cf(name, age, health, tol, sex);
+                if(lake_map.find(zone)==lake_map.end()){
+                    lake_map[zone] = ZoneValue{};
+                    env_map[zone] = ZoneEnv{};
+                }
+                int idx = age_bucket(age);
+                lake_map[zone][idx].push_back(cf);
+                ++lines;
+            } catch(...) {
+                // malformed numeric fields; skip this line but continue
+                continue;
+            }
     }
   }
     fin.close();
     if(lines >= 100)
     return true;
-  }
+  
 
   vector<string> zones = {"Inlets", "ReefNorth", "ReefSouth", "DeepPool", "Outlet"};
   int serial = 1;
