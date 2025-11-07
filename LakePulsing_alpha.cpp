@@ -282,12 +282,15 @@ map<string, tuple<int, int, int>> compute_stats(const LakeMap &lake_map) {
 }
 
 // 8) main_driver (orchestrator)
-int main_driver(const string &filename) {
+int main_driver(const string &filename, int total_years, const string &snapshot_csv_name) {
   LakeMap lake_map;
   EnvMap env_map;
 
-    load_initial_data(filename, lake_map, env_map);
-    print_snapshot(0, lake_map, env_map);
+  bool ok = load_initial_data(filename, lake_map, env_map);
+  if(!ok){
+      cerr << "Error loading initial data from file: " << filename << "\n";
+      return 1;
+  }
 
   for(int month=1; month<=TOTAL_MONTHS; ++month){
       for(auto &ep : env_map){
