@@ -82,33 +82,45 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
   if(fin){
     string line;
     int lines = 0;
-    while(getline(fin, line)){
-      if(line.empty()) continue;
-      ++lines;
-      stringstream ss(line);
-      string zone,name,age_s,health_s,tol_s,sex_s;
-      if(!getline(ss, zone, ',')) continue;
-      if(!getline(ss, name, ',')) continue;
-      if(!getline(ss, age_s, ',')) continue;
-      if(!getline(ss, health_s, ',')) continue;
-      if(!getline(ss, tol_s, ',')) continue;
-      if(!getline(ss, sex_s, ',')) continue;
-      {
-         sex_s = "M";
-      }
-      int age = stoi(age_s);
-      double health = stod(health_s);
-      double tol = stod(tol_s);
-      char sex = sex_s.empty() ? 'M' : sex_s[0];
-      Clownfish cf(name, age, health, tol, sex);
-      if(lake_map.find(zone) == lake_map.end())
-      {
-        lake_map[zone] = ZoneValue();
-        env_map[zone] = ZoneEnv();
-      }
-      int bucket = age_bucket(age);
-      lake_map[zone][bucket].push_back(cf);
+    while (getline(fin, line)) {
+    if (line.empty()) continue;
+    // Peek first token before parsing; header expected like: zone,name,age_months,health,tolerance,sex
+    string firstToken;
+    {
+        string tmp = line;
+        stringstream ss(tmp);
+        if (!getline(ss, firstToken, ',')) firstToken = "";
     }
+    // Case-insensitive check for "zone" or "Zone"
+    string firstLower = firstToken;
+    transform(firstLower.begin(), firstLower.end(), firstLower.begin(), ::tolower);
+    if (firstLower == "zone" || firstLower == "zone ") {
+        // this is a header line: skip it and continue with next lines
+    } else {
+        // not a header: process this line as data
+        stringstream ss(line);
+        string zone,name,age_s,health_s,tol_s,sex_s;
+        if(!getline(ss,zone,',')) continue;
+        if(!getline(ss,name,',')) continue;
+        if(!getline(ss,age_s,',')) continue;
+        if(!getline(ss,health_s,',')) continue;
+        if(!getline(ss,tol_s,',')) continue;
+        if(!getline(ss,sex_s,',')) sex_s = "M";
+        // parse values and push into maps (same code as before)
+        int age = stoi(age_s);
+        double health = stod(health_s);
+        double tol = stod(tol_s);
+        char sex = sex_s.empty() ? 'M' : sex_s[0];
+        Clownfish cf(name, age, health, tol, sex);
+        if(lake_map.find(zone)==lake_map.end()){
+            lake_map[zone] = ZoneValue{};
+            env_map[zone] = ZoneEnv{};
+        }
+        int idx = age_bucket(age);
+        lake_map[zone][idx].push_back(cf);
+        ++lines;
+    }
+  }
     fin.close();
     if(lines >= 100)
     return true;
@@ -142,7 +154,7 @@ void print_snapshot(int month, const LakeMap &lake_map, const EnvMap &env_map){
     cout << "Snapshot - Month: " << month << " Year: " << year << "\n";
     cout << left << setw(14) << "Zone" 
         << setw(16) << "Water Quality" 
-        << setw(8) << "Juveniles" 
+        << setw(8) << "Youngs" 
         << setw(8) << "Adults" 
         << setw(8) << "Seniors" 
         << setw(8) << "Total" << "\n";
@@ -293,14 +305,6 @@ int main_driver(const string &filename) {
     return 0;
   
 }
-
-// 9) Utility helpers (small functions)
-// - int age_bucket(int age_months) -> returns 0/1/2
-// - string generate_unique_id(...) -> create unique id for newborns
-// - double rand_uniform() -> uniform double in [0,1)
-// - void ensure_zone_exists(lake_map, env_map, const string &zone) -> helper to initialize structures
-// - File parsing helpers and validation helpers
-
 
 int main(int argc, char** argv) {
   string filename = "clownfish_initial.csv";
