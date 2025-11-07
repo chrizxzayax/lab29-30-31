@@ -23,18 +23,15 @@
 using namespace std;
 
 
-  const int MONTHS_PER_YEAR = 12;
-  const int TOTAL_YEARS = 12;
-  const int TOTAL_MONTHS = 144;
-  const int JUVENILE_AGE_THRESHOLD = 6;
-  const int SENIOR_AGE_THRESHOLD = 60;
-  const double BASE_REPRO_RATE = 0.25;
-
-  const double NATURAL_MORTALITY = 0.005;
-  const double POLLUTION_MORT_MULT = 0.6;
-  const int OVERCROWDING_CAPACITY = 50;
-  const int SNAPSHOT_INTERVAL = 12;
-
+const int MONTHS_PER_YEAR = 12;
+const int DEFAULT_YEARS = 12;           // Beta default: 12 years
+const int JUVENILE_AGE_THRESHOLD = 6;   // months
+const int SENIOR_AGE_THRESHOLD = 60;    // months
+const double BASE_REPRO_RATE = 0.25;
+const double NATURAL_MORTALITY = 0.005;
+const double POLLUTION_MORT_MULT = 0.6;
+const int OVERCROWDING_CAPACITY = 50;
+const int SNAPSHOT_INTERVAL = 12;      // months
 
 // -------------------------
 // Data types
@@ -301,7 +298,7 @@ int main_driver(const string &filename, int total_years, const string &snapshot_
 
     print_snapshot(0, lake_map, env_map, csv_out.is_open() ? &csv_out : nullptr);
 
-    for(int month=1; month<=TOTAL_MONTHS; ++month){
+    for(int month=1; month<=total_months; ++month){
         for(auto &ep : env_map){
             update_zone_environment(ep.second, month);
         }
@@ -313,7 +310,7 @@ int main_driver(const string &filename, int total_years, const string &snapshot_
             age_and_transfer(zv);
         }
         
-        if(month % SNAPSHOT_INTERVAL == 0 || month == TOTAL_MONTHS){
+        if(month % SNAPSHOT_INTERVAL == 0 || month == total_months){
             print_snapshot(month, lake_map, env_map, csv_out.is_open() ? &csv_out : nullptr);
         }
     }
@@ -332,13 +329,28 @@ int main_driver(const string &filename, int total_years, const string &snapshot_
 }
 
 int main(int argc, char** argv) {
-  string filename = "clownfish_initial.csv";
-  int years = TOTAL_YEARS;
-  if(argc >= 2){
-    filename = argv[1];
-  }
-  cout << "LakePulsing ALPHA - starting with file: " << TOTAL_MONTHS << "\n";
-  int rc = main_driver(filename, years);
-  cout << "LakePulsing ALPHA - finished.\n";
-  return rc;
+    string filename = "clownfish_sample.csv";
+    int years = DEFAULT_YEARS;
+    unsigned seed = (unsigned)time(nullptr);
+    string snapshot_csv = "lake_snapshot_alpha.csv";
+
+    if(argc >= 2){
+        filename = argv[1];
+    }
+    if(argc >= 3){
+        try { years = stoi(argv[2]); if(years < 1) years = DEFAULT_YEARS; }
+        catch(...) { years = DEFAULT_YEARS; }
+    }
+    if(argc >= 4){
+        try { seed = static_cast<unsigned>(stoul(string(argv[3]))); }
+        catch(...) { seed = (unsigned)time(nullptr); }
+    }
+
+    rng_engine.seed(seed);
+
+    cout << "LakePulsing BETA - starting simulation for " << years << " years using data file: " << filename << "\n";
+
+    int rc = main_driver(filename, years, snapshot_csv);
+    cout << "LakePulsing BETA - finished.\n";
+    return rc;
 } 
