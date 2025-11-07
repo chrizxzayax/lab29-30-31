@@ -14,5 +14,18 @@
 5) Parsing malformed numeric fields crashed the loader.
    Fix: added try/catch around stoi/stod and skip malformed lines.
 
+6) No reproducible runs for testers.
+   Fix: accept optional seed via command-line to produce deterministic runs.
 
+7) No CSV snapshot export for analysis.
+   Fix: Beta writes yearly snapshots to snapshots.csv with header.
+
+8) Synthetic fallback produced too-small age range.
+   Fix: extended synthetic age max and diversified health/tolerance ranges.
+
+9) No graceful file-not-found behavior.
+   Fix: loader falls back to synthetic generation and informs user.
+
+10) No summary CSV/header when writing snapshots.
+    Fix: snapshots.csv now created with a header row and simple format.
 
