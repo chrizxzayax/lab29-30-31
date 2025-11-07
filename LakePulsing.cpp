@@ -201,8 +201,14 @@ array<int, 3> simulate_mortality(ZoneValue &zv, const ZoneEnv &env) {
 // 5) simulate_reproduction
 int simulate_reproduction(const ZoneValue &zv, const ZoneEnv &env, int &serial_counter) {
     int adult_count = (int)zv[1].size();
-    if(adult_count == 0) return 0; //
-  }
+    if(adult_count == 0) return 0;
+    double env_suit = env.water_quality;
+    int total = (int)(zv[0].size() + zv[1].size() + zv[2].size());
+    double overcrowd = max(0.0, (double)(total - OVERCROWDING_CAPACITY) / OVERCROWDING_CAPACITY);
+    double expected_births = BASE_REPRO_RATE * adult_count * env_suit * exp(-overcrowd);
+    int births = (int)floor(expected_births + uniform01());
+}
+
 // 6) age_and_transfer
 // - Input: ZoneValue &zone_lists
 // - For juveniles (index 0): increment ages; if age >= JUVENILE_AGE_THRESHOLD -> move to adults
@@ -231,6 +237,54 @@ int main_driver(const string &filename) {
     load_initial_data(filename, lake_map, env_map);
     print_snapshot(0, lake_map, env_map);
 
+  for(int month=1; month<=TOTAL_MONTHS; ++month){
+      for(auto &p : env_map){
+          update_zone_environment(p.second, month);
+      }
+      for(auto &p : lake_map){
+          const string &zone = p.first;
+          ZoneValue &zv = p.second;
+          auto itenv = env_map.find(zone);
+          if(itenv == env_map.end()) continue;
+          ZoneEnv &env = itenv->second;
+          simulate_mortality(zv, env);
+          int births = simulate_reproduction(zv, env, month);
+          for(int b=0;b<births;++b){
+              string id = make_id(month * 1000 + b);
+              Clownfish cf(id, 0, 1.0, 0.5 + 0.5 * uniform01(), (uniform01() < 0.5) ? 'M' : 'F');
+              zv[0].push_back(cf);
+          }
+          // age and transfer
+          // juveniles to adults
+          for(auto it = zv[0].begin(); it != zv[0].end(); ){
+              it->age_months++;
+              if(it->age_months >= JUVENILE_AGE_THRESHOLD){
+                  zv[1].push_back(*it);
+                  it = zv[0].erase(it);
+              } else {
+                  ++it;
+              }
+          }
+          // adults to seniors
+          for(auto it = zv[1].begin(); it != zv[1].end(); ){
+              it->age_months++;
+              if(it->age_months >= SENIOR_AGE_THRESHOLD){
+                  zv[2].push_back(*it);
+                  it = zv[1].erase(it);
+              } else {
+                  ++it;
+              }
+          }
+          // seniors age
+          for(auto &f : zv[2]){
+              f.age_months++;
+          }
+      }
+      if(month % SNAPSHOT_INTERVAL == 0){
+          print_snapshot(month, lake_map, env_map);
+      }
+  }
+
   if(!load_initial_data(filename, lake_map, env_map)){
     cerr << "Error loading initial data from " << filename << endl;
     return 1;
@@ -248,9 +302,10 @@ int main_driver(const string &filename) {
 
 int main(int argc, char** argv) {
   string filename = "clownfish_initial.csv";
-  if(argc > 1){
+  if(argc >= 2){
     filename = argv[1];
   }
+  cout << "LakePulsing ALPHA - starting with file: " << TOTAL_MONTHS << "\n";
   int rc = main_driver(filename);
   cout << "LakePulsing ALPHA - finished.\n";
   return rc;
