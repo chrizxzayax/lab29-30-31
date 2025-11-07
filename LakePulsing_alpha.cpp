@@ -154,7 +154,7 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
 }
 
 void print_snapshot(int month, const LakeMap &lake_map, const EnvMap &env_map, ofstream *csv_out=nullptr){
-    int year = (month) / 12;
+    int year = (month)/12;
     cout << "///////////////////////////////////////////////////\n";
     cout << "Snapshot - Month: " << month << " Year: " << year << "\n";
     cout << left << setw(14) << "Zone" 
@@ -274,8 +274,7 @@ map<string, tuple<int, int, int>> compute_stats(const LakeMap &lake_map) {
     map<string, tuple<int, int, int>> stats;
     for(const auto &p : lake_map){
         const ZoneValue &zv = p.second;
-        int j=(int)zv[0].size(), 
-        a=(int)zv[1].size(), s=(int)zv[2].size();
+        int j=(int)zv[0].size(), a=(int)zv[1].size(), s=(int)zv[2].size();
         stats[p.first] = make_tuple(j, a, s);
     }
     return stats;
@@ -306,13 +305,12 @@ int main_driver(const string &filename, int total_years, const string &snapshot_
         for(auto &ep : env_map){
             update_zone_environment(ep.second, month);
         }
-        for(auto &ep : env_map){
+        for(auto &zp : lake_map){
             ZoneValue &zv = zp.second;
             ZoneEnv &env = env_map[zp.first];
             auto dead = simulate_mortality(zv, env);
             int births = simulate_reproduction(zv, env);
             age_and_transfer(zv);
-
         }
         
         if(month % SNAPSHOT_INTERVAL == 0 || month == TOTAL_MONTHS){
@@ -335,11 +333,12 @@ int main_driver(const string &filename, int total_years, const string &snapshot_
 
 int main(int argc, char** argv) {
   string filename = "clownfish_initial.csv";
+  int years = TOTAL_YEARS;
   if(argc >= 2){
     filename = argv[1];
   }
   cout << "LakePulsing ALPHA - starting with file: " << TOTAL_MONTHS << "\n";
-  int rc = main_driver(filename);
+  int rc = main_driver(filename, years);
   cout << "LakePulsing ALPHA - finished.\n";
   return rc;
 } 
