@@ -121,7 +121,6 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
                 lake_map[zone][idx].push_back(cf);
                 ++lines;
             } catch(...) {
-                // malformed numeric fields; skip this line but continue
                 continue;
             }
     }
@@ -151,11 +150,11 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
           int idx = age_bucket(age);
           lake_map[zone][idx].push_back(cf);
       }
-  return true;
+    return true;
 }
 
-void print_snapshot(int month, const LakeMap &lake_map, const EnvMap &env_map){
-    int year = (month) / MONTHS_PER_YEAR;
+void print_snapshot(int month, const LakeMap &lake_map, const EnvMap &env_map, ofstream *csv_out=nullptr){
+    int year = (month) / 12;
     cout << "///////////////////////////////////////////////////\n";
     cout << "Snapshot - Month: " << month << " Year: " << year << "\n";
     cout << left << setw(14) << "Zone" 
@@ -164,7 +163,7 @@ void print_snapshot(int month, const LakeMap &lake_map, const EnvMap &env_map){
         << setw(8) << "Adults" 
         << setw(8) << "Seniors" 
         << setw(8) << "Total" << "\n";
-    for(auto &p : lake_map){
+    for(const auto &p : lake_map){
           const string &zone = p.first;
           const ZoneValue &zv = p.second;
           int j = (int)zv[0].size();
@@ -176,6 +175,11 @@ void print_snapshot(int month, const LakeMap &lake_map, const EnvMap &env_map){
           if(itenv!=env_map.end()) wq = itenv->second.water_quality;
           cout << left << setw(14) << zone << setw(8) << fixed << setprecision(2) << wq 
               << setw(8) << tot << setw(8) << j << setw(8) << a << setw(8) << s << "\n";
+          if(csv_out){
+            // CSV row: month,zone,wq,total,j,a,s
+            (*csv_out) << month << "," << zone << "," << setprecision(2) << wq << "," 
+                       << tot << "," << j << "," << a << "," << s << "\n";//CSV row
+            }
     }
     cout << "---------------------------------------------------\n";
 }
@@ -266,9 +270,9 @@ void age_and_transfer(ZoneValue &zv){
 }
 
 // 7) compute_stats
-map<string, tuple<int, int, double>> compute_stats(const LakeMap &lake_map) {
-    map<string, tuple<int, int, double>> stats;
-    for(auto &p : lake_map){
+map<string, tuple<int, int, int>> compute_stats(const LakeMap &lake_map) {
+    map<string, tuple<int, int, int>> stats;
+    for(const auto &p : lake_map){
         const ZoneValue &zv = p.second;
         int j=(int)zv[0].size(), 
         a=(int)zv[1].size(), s=(int)zv[2].size();
