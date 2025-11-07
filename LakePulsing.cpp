@@ -248,9 +248,21 @@ void age_and_transfer(ZoneValue &zv){
 }
 
 // 7) compute_stats
-// - Input: LakeMap &lake_map
-// - Output: aggregated data structure (map<string, tuple<int,int,int>> or print directly)
-// - Used by print_snapshot and final summary
+map<string, double> compute_stats(const LakeMap &lake_map) {
+    map<string, double> stats;
+    int total_fish = 0;
+    int total_zones = (int)lake_map.size();
+    for(auto &p : lake_map){
+        const ZoneValue &zv = p.second;
+        for(int idx=0; idx<3; ++idx){
+            total_fish += (int)zv[idx].size();
+        }
+    }
+    double avg_fish_per_zone = total_zones > 0 ? (double)total_fish / total_zones : 0.0;
+    stats["TotalFish"] = (double)total_fish;
+    stats["AvgFishPerZone"] = avg_fish_per_zone;
+    return stats;
+}
 
 // 8) main_driver (orchestrator)
 // - Input: filename for initial CSV
@@ -281,9 +293,10 @@ int main_driver(const string &filename) {
               const ZoneEnv &env = itenv->second;
               simulate_mortality(zv, env);
               simulate_reproduction(zv, env);
-              // age_and_transfer(zv); // to be implemented
+              age_and_transfer(zv);
           }
       }
+      
       if(month % SNAPSHOT_INTERVAL == 0){
           print_snapshot(month, lake_map, env_map);
       }
