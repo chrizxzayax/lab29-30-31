@@ -286,34 +286,48 @@ int main_driver(const string &filename, int total_years, const string &snapshot_
   LakeMap lake_map;
   EnvMap env_map;
 
-  bool ok = load_initial_data(filename, lake_map, env_map);
-  if(!ok){
-      cerr << "Error loading initial data from file: " << filename << "\n";
-      return 1;
-  }
+    bool ok = load_initial_data(filename, lake_map, env_map);
+    if(!ok){
+        cerr << "Error loading initial data from file: " << filename << "\n";
+        return 1;
+    }
+    int total_months = total_years * MONTHS_PER_YEAR;
+    ofstream csv_out;
+    if(!snapshot_csv_name.empty()){
+        csv_out.open(snapshot_csv_name);
+        if(csv_out){
+            csv_out << "Month,Zone,WaterQuality,Total,Youngs,Adults,Seniors\n";
+        }
+    }
 
-  for(int month=1; month<=TOTAL_MONTHS; ++month){
-      for(auto &ep : env_map){
-          update_zone_environment(ep.second, month);
-      }
-      for(auto &zp : lake_map){
-          ZoneValue &zv = zp.second;
-          ZoneEnv &env = env_map[zp.first];
-          auto dead = simulate_mortality(zv, env);
-          int births = simulate_reproduction(zv, env);
-          age_and_transfer(zv);
+    print_snapshot(0, lake_map, env_map, csv_out.is_open() ? &csv_out : nullptr);
 
-      }
-      
-      if(month % SNAPSHOT_INTERVAL == 0){
-          print_snapshot(month, lake_map, env_map);
-      }
-  }
+    for(int month=1; month<=TOTAL_MONTHS; ++month){
+        for(auto &ep : env_map){
+            update_zone_environment(ep.second, month);
+        }
+        for(auto &ep : env_map){
+            ZoneValue &zv = zp.second;
+            ZoneEnv &env = env_map[zp.first];
+            auto dead = simulate_mortality(zv, env);
+            int births = simulate_reproduction(zv, env);
+            age_and_transfer(zv);
+
+        }
+        
+        if(month % SNAPSHOT_INTERVAL == 0 || month == TOTAL_MONTHS){
+            print_snapshot(month, lake_map, env_map, csv_out.is_open() ? &csv_out : nullptr);
+        }
+    }
+
   auto stats = compute_stats(lake_map);
     cout << "\nFINAL SUMMARY (alpha)\n";
-    for(auto &p : stats){
+    for(const auto &p : stats){
         int j,a,s; tie(j,a,s) = p.second;
         cout << p.first << ": J="<<j<<" A="<<a<<" S="<<s<<"\n";
+    }
+    if(csv_out.is_open()){
+        csv_out.close();
     }
     return 0;
   
