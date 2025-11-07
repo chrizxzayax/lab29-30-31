@@ -125,7 +125,8 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
     if(lines >= 100)
     return true;
   }
-  vector<string> zones = {"Inlet", "ReefNorth", "ReefSouth", "DeepPool", "Outlet"};
+
+  vector<string> zones = {"Inlets", "ReefNorth", "ReefSouth", "DeepPool", "Outlet"};
   int serial = 1;
   for(size_t z=0; z<zones.size(); ++z){
     lake_map[zones[z]] = ZoneValue{};
