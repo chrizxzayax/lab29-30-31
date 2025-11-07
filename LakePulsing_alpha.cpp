@@ -27,10 +27,10 @@ const int MONTHS_PER_YEAR = 12;
 const int DEFAULT_YEARS = 12;           // Beta default: 12 years
 const int JUVENILE_AGE_THRESHOLD = 6;   // months
 const int SENIOR_AGE_THRESHOLD = 60;    // months
-const double BASE_REPRO_RATE = 0.25;
-const double NATURAL_MORTALITY = 0.005;
-const double POLLUTION_MORT_MULT = 0.6;
-const int OVERCROWDING_CAPACITY = 50;
+const double BASE_REPRO_RATE = 0.8;
+const double NATURAL_MORTALITY = 0.002;
+const double POLLUTION_MORT_MULT = 0.25;
+const int OVERCROWDING_CAPACITY = 90;
 const int SNAPSHOT_INTERVAL = 12;      // months
 
 // -------------------------
