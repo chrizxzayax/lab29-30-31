@@ -207,9 +207,9 @@ int simulate_reproduction(ZoneValue &zv, const ZoneEnv &env) {
     double env_suit = env.water_quality;
     int total = (int)(zv[0].size() + zv[1].size() + zv[2].size());
     double overcrowd = max(0.0, (double)(total - OVERCROWDING_CAPACITY) / OVERCROWDING_CAPACITY);
-    double expected_births = BASE_REPRO_RATE * adult_count * env_suit * exp(-overcrowd);
+    double expected_births = BASE_REPRO_RATE * adult_count * env_suit * overcrowd;
     int births = (int)floor(expected_births + uniform01());
-    static int birth_serial = 0;
+    static int birth_serial = 10000;
 
     for (int i=0;i<births;++i){
         string id = make_id(birth_serial++);
@@ -224,10 +224,19 @@ int simulate_reproduction(ZoneValue &zv, const ZoneEnv &env) {
 }
 
 // 6) age_and_transfer
-// - Input: ZoneValue &zone_lists
-// - For juveniles (index 0): increment ages; if age >= JUVENILE_AGE_THRESHOLD -> move to adults
-// - For adults (index 1): increment ages; if age >= SENIOR_AGE_THRESHOLD -> move to seniors
-// - For seniors (index 2): increment ages only
+
+void age_and_transfer(ZoneValue &zv){
+    for(auto it = zv[0].begin(); it != zv[0].end(); ){
+        Clownfish &f = *it;
+        f.age_months += 1;
+        if(f.age_months >= JUVENILE_AGE_THRESHOLD){
+            zv[1].push_back(f);
+            it = zv[0].erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
 
 // 7) compute_stats
 // - Input: LakeMap &lake_map
