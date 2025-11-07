@@ -5,4 +5,14 @@
 2) Using non-portable <bits/stdc++.h>.
    Fix: replaced with explicit standard includes for portability.
 
+3) RNG inconsistency (mix of rand() and mt19937).
+   Fix: removed rand(); all random draws use seeded std::mt19937.
+
+4) Alpha used a short 3-year default (confusing).
+   Fix: Beta default is 12 years; CLI allows shorter for quick tests.
+
+5) Parsing malformed numeric fields crashed the loader.
+   Fix: added try/catch around stoi/stod and skip malformed lines.
+
+
 

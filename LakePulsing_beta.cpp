@@ -316,7 +316,7 @@ int main_driver(const string &filename, int total_years, const string &snapshot_
     }
 
   auto stats = compute_stats(lake_map);
-    cout << "\nFINAL SUMMARY (alpha)\n";
+    cout << "\nFINAL SUMMARY (beta)\n";
     for(const auto &p : stats){
         int j,a,s; tie(j,a,s) = p.second;
         cout << p.first << ": J="<<j<<" A="<<a<<" S="<<s<<"\n";
