@@ -260,15 +260,6 @@ map<string, tuple<int, int, double>> compute_stats(const LakeMap &lake_map) {
 }
 
 // 8) main_driver (orchestrator)
-// - Input: filename for initial CSV
-// - Steps:
-//     - call load_initial_data(filename,...)
-//     - print_snapshot(0,...)
-//     - for month = 1 .. TOTAL_MONTHS:
-//         - for each zone: update_zone_environment(env, month)
-//         - for each zone: simulate_mortality(...), births = simulate_reproduction(...), age_and_transfer(...)
-//         - if month % SNAPSHOT_INTERVAL == 0: print_snapshot(month,...)
-//     - print final summary and optionally write CSV logs
 int main_driver(const string &filename) {
   LakeMap lake_map;
   EnvMap env_map;
@@ -293,11 +284,13 @@ int main_driver(const string &filename) {
           print_snapshot(month, lake_map, env_map);
       }
   }
-  if(!load_initial_data(filename, lake_map, env_map)){
-    cerr << "Error loading initial data from " << filename << endl;
-    return 1;
-  }
-  return 0;
+  auto stats = compute_stats(lake_map);
+    cout << "\nFINAL SUMMARY (alpha)\n";
+    for(auto &p : stats){
+        int j,a,s; tie(j,a,s) = p.second;
+        cout << p.first << ": J="<<j<<" A="<<a<<" S="<<s<<"\n";
+    }
+    return 0;
   
 }
 
