@@ -1,0 +1,8 @@
+
+1) Header crash when CSV had header text.
+   Fix: load_initial_data now detects and skips a header line before parsing.
+
+2) Using non-portable <bits/stdc++.h>.
+   Fix: replaced with explicit standard includes for portability.
+
+

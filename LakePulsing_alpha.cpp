@@ -348,7 +348,9 @@ int main(int argc, char** argv) {
 
     rng_engine.seed(seed);
 
-    cout << "LakePulsing BETA - starting simulation for " << years << " years using data file: " << filename << "\n";
+    cout << "LakePulsing BETA - starting simulation for " << years << " years using data file: " << seed << "\n";
+    cout << "input file: " << filename << "\n";
+    cout << "snapshot file: " << snapshot_csv << "\n";
 
     int rc = main_driver(filename, years, snapshot_csv);
     cout << "LakePulsing BETA - finished.\n";
