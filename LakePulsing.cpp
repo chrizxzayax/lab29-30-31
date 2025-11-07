@@ -182,11 +182,11 @@ array<int, 3> simulate_mortality(ZoneValue &zv, const ZoneEnv &env) {
     for(int idx=0; idx<3; ++idx){
         for(auto it = zv[idx].begin(); it != zv[idx].end(); ){
              Clownfish &f = *it;
-            double vuln = 1.0 - f.tolerance;
+            double vuln = 1.0 - f.tolerance;// higher tolerance = lower vulnerability
             double mort = NATURAL_MORTALITY + pollution_factor * POLLUTION_MORT_MULT * vuln;
             if(f.age_months >= SENIOR_AGE_THRESHOLD) mort *= SENIOR_MULT;
             double r = uniform01();
-            if(r < mort){
+            if(r < mort){// fish dies
                 it = zv[idx].erase(it);
                 dead[idx]++;
             } else {
@@ -199,14 +199,10 @@ array<int, 3> simulate_mortality(ZoneValue &zv, const ZoneEnv &env) {
 
 
 // 5) simulate_reproduction
-// - Input: ZoneValue &zone_lists, const ZoneEnv &env
-// - adult_count = size(zone_lists[1])
-// - env_suit = env.water_quality
-// - total_pop = sum sizes of all three lists
-// - overcrowd_factor = min(1.0, OVERCROWDING_CAPACITY / total_pop)
-// - repro_rate = BASE_REPRO_RATE * env_suit * overcrowd_factor
-// - Return births (int)
-
+int simulate_reproduction(const ZoneValue &zv, const ZoneEnv &env, int &serial_counter) {
+    int adult_count = (int)zv[1].size();
+    if(adult_count == 0) return 0; //
+  }
 // 6) age_and_transfer
 // - Input: ZoneValue &zone_lists
 // - For juveniles (index 0): increment ages; if age >= JUVENILE_AGE_THRESHOLD -> move to adults
