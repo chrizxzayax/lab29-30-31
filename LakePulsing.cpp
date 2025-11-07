@@ -248,19 +248,12 @@ void age_and_transfer(ZoneValue &zv){
 }
 
 // 7) compute_stats
-map<string, double> compute_stats(const LakeMap &lake_map) {
-    map<string, double> stats;
-    int total_fish = 0;
-    int total_zones = (int)lake_map.size();
+map<string, tuple<int, int, double>> compute_stats(const LakeMap &lake_map) {
+    map<string, tuple<int, int, double>> stats;
     for(auto &p : lake_map){
         const ZoneValue &zv = p.second;
-        for(int idx=0; idx<3; ++idx){
-            total_fish += (int)zv[idx].size();
-        }
+
     }
-    double avg_fish_per_zone = total_zones > 0 ? (double)total_fish / total_zones : 0.0;
-    stats["TotalFish"] = (double)total_fish;
-    stats["AvgFishPerZone"] = avg_fish_per_zone;
     return stats;
 }
 
