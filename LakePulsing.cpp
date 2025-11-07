@@ -174,17 +174,10 @@ void update_zone_environment(ZoneEnv &env, int month) {
     env.water_quality = max(0.0, min(1.0, env.water_quality));
 }
 
-
-
 // 4) simulate_mortality
-// - Input: ZoneValue &zone_lists, const ZoneEnv &env
-// - For each fish in each of the three lists:
-//     - compute pollution_factor = 1.0 - env.water_quality
-//     - vuln = 1.0 - fish.tolerance
-//     - mort_prob = NATURAL_MORTALITY + pollution_factor * POLLUTION_MORT_MULT * vuln
-//     - if fish.age_months >= SENIOR_AGE_THRESHOLD: mort_prob *= SENIOR_MULTIPLIER
-//     - draw random r in [0,1); if r < mort_prob => erase fish (iterator-safe removal)
-// - Return statistics: number dead per age class (array<int,3>) or total dead
+array<int, 3> simulate_mortality(ZoneValue &zv, const ZoneEnv &env) {
+    array<int, 3> dead = {0, 0, 0};
+
 
 // 5) simulate_reproduction
 // - Input: ZoneValue &zone_lists, const ZoneEnv &env
@@ -221,6 +214,7 @@ int main_driver(const string &filename) {
   EnvMap env_map;
 
     load_initial_data(filename, lake_map, env_map);
+    print_snapshot(0, lake_map, env_map);
 
   if(!load_initial_data(filename, lake_map, env_map)){
     cerr << "Error loading initial data from " << filename << endl;
