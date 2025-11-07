@@ -177,6 +177,25 @@ void update_zone_environment(ZoneEnv &env, int month) {
 // 4) simulate_mortality
 array<int, 3> simulate_mortality(ZoneValue &zv, const ZoneEnv &env) {
     array<int, 3> dead = {0, 0, 0};
+    double pollution_factor = 1.0 - env.water_quality;
+    const double SENIOR_MULT = 1.5;
+    for(int idx=0; idx<3; ++idx){
+        for(auto it = zv[idx].begin(); it != zv[idx].end(); ){
+             Clownfish &f = *it;
+            double vuln = 1.0 - f.tolerance;
+            double mort = NATURAL_MORTALITY + pollution_factor * POLLUTION_MORT_MULT * vuln;
+            if(f.age_months >= SENIOR_AGE_THRESHOLD) mort *= SENIOR_MULT;
+            double r = uniform01();
+            if(r < mort){
+                it = zv[idx].erase(it);
+                dead[idx]++;
+            } else {
+              ++it;
+            }
+        }
+    }
+    return dead;
+}
 
 
 // 5) simulate_reproduction
