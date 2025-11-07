@@ -227,14 +227,23 @@ int simulate_reproduction(ZoneValue &zv, const ZoneEnv &env) {
 
 void age_and_transfer(ZoneValue &zv){
     for(auto it = zv[0].begin(); it != zv[0].end(); ){
-        Clownfish &f = *it;
-        f.age_months += 1;
-        if(f.age_months >= JUVENILE_AGE_THRESHOLD){
-            zv[1].push_back(f);
-            it = zv[0].erase(it);
+        it->age_months += 1;
+        if(it->age_months >= JUVENILE_AGE_THRESHOLD){
+            zv[1].splice(zv[1].end(), zv[0], it++);
         } else {
             ++it;
         }
+    }
+    for(auto it = zv[1].begin(); it != zv[1].end(); ){
+        it->age_months += 1;
+        if(it->age_months >= SENIOR_AGE_THRESHOLD){
+            zv[2].splice(zv[2].end(), zv[1], it++);
+        } else {
+            ++it;
+        }
+    }
+    for(auto &f : zv[2]){
+        f.age_months += 1;
     }
 }
 
