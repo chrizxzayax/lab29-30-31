@@ -60,22 +60,6 @@ using ZoneValue = array<list<Clownfish>, 3>;
 using LakeMap = map<string, ZoneValue>;
 using EnvMap  = map<string, ZoneEnv>;
 
-// -------------------------
-// Function prototypes (what each will do)
-// -------------------------
-
-// 1) load_initial_data
-// - Input: filename (string), outputs: LakeMap & EnvMap (passed by reference)
-// - Open CSV file with format: zone,name,age_months,health,tolerance,sex
-// - For each line:
-//     - parse fields and create Clownfish object
-//     - determine bucket index: 0 juvenile (<JUV thresh), 1 adult, 2 senior
-//     - if new zone: initialize LakeMap[zone] (3 empty lists) and EnvMap[zone] default ZoneEnv
-//     - push_back the clownfish into the corresponding list
-// - Count lines read; if < 100 -> return error or warning
-// - Validate fields and handle malformed lines gracefully
-// - Use deterministic RNG seed option for testing
-
 // RNG helper function prototype
 static std::mt19937 rng_engine((unsigned)time(nullptr)); // Seed with current time or fixed seed for testing
 inline double uniform01() { return std::uniform_real_distribution<double>(0.0, 1.0)(rng_engine); }// I arbirtrarily chose 0.0 to 1.0 as the ranges
@@ -151,25 +135,31 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
       }
   return true;
 }
-// 2) print_snapshot
-// - Input: month (int), lake_map, env_map
-// - Output formatted console text:
-//      - header: Month, Year
-//      - for each zone:
-//           - water_quality (formatted decimal), counts J/A/S, total
-//           - optionally list 1-3 sample fish per class with (id, age, health, tolerance)
-// - Use setw and aligned columns for neatness
 
 void print_snapshot(int month, const LakeMap &lake_map, const EnvMap &env_map){
-  int year = (month) / MONTHS_PER_YEAR;
-  cout << "///////////////////////////////////////////////////\n";
-  cout << "Snapshot - Month: " << month << " Year: " << year << "\n";
-  cout << left << setw(14) << "Zone" 
-       << setw(16) << "Water Quality" 
-       << setw(8) << "Juveniles" 
-       << setw(8) << "Adults" 
-       << setw(8) << "Seniors" 
-       << setw(8) << "Total" << "\n";
+    int year = (month) / MONTHS_PER_YEAR;
+    cout << "///////////////////////////////////////////////////\n";
+    cout << "Snapshot - Month: " << month << " Year: " << year << "\n";
+    cout << left << setw(14) << "Zone" 
+        << setw(16) << "Water Quality" 
+        << setw(8) << "Juveniles" 
+        << setw(8) << "Adults" 
+        << setw(8) << "Seniors" 
+        << setw(8) << "Total" << "\n";
+    for(auto &p : lake_map){
+          const string &zone = p.first;
+          const ZoneValue &zv = p.second;
+          int j = (int)zv[0].size();
+          int a = (int)zv[1].size();
+          int s = (int)zv[2].size();
+          int tot = j+a+s;
+          double wq = 0.0;
+          auto itenv = env_map.find(zone);
+          if(itenv!=env_map.end()) wq = itenv->second.water_quality;
+          cout << left << setw(14) << zone << setw(8) << fixed << setprecision(2) << wq 
+              << setw(8) << tot << setw(8) << j << setw(8) << a << setw(8) << s << "\n";
+    }
+    cout << "---------------------------------------------------\n";
 }
 
 // 3) update_zone_environment
@@ -231,7 +221,6 @@ int main_driver(const string &filename) {
     cerr << "Error loading initial data from " << filename << endl;
     return 1;
   }
-  // Further implementation of the driver function goes here...
   return 0;
 }
 
