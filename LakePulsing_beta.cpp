@@ -23,18 +23,15 @@
 using namespace std;
 
 
-  const int MONTHS_PER_YEAR = 12;
-  const int TOTAL_YEARS = 12;
-  const int TOTAL_MONTHS = 144;
-  const int JUVENILE_AGE_THRESHOLD = 6;
-  const int SENIOR_AGE_THRESHOLD = 60;
-  const double BASE_REPRO_RATE = 0.25;
-
-  const double NATURAL_MORTALITY = 0.005;
-  const double POLLUTION_MORT_MULT = 0.6;
-  const int OVERCROWDING_CAPACITY = 50;
-  const int SNAPSHOT_INTERVAL = 12;
-
+const int MONTHS_PER_YEAR = 12;
+const int DEFAULT_YEARS = 12;           // Beta default: 12 years
+const int JUVENILE_AGE_THRESHOLD = 6;   // months
+const int SENIOR_AGE_THRESHOLD = 60;    // months
+const double BASE_REPRO_RATE = 0.8;
+const double NATURAL_MORTALITY = 0.002;
+const double POLLUTION_MORT_MULT = 0.25;
+const int OVERCROWDING_CAPACITY = 90;
+const int SNAPSHOT_INTERVAL = 12;      // months
 
 // -------------------------
 // Data types
@@ -52,7 +49,7 @@ struct Clownfish {
 struct ZoneEnv {
     double water_quality;   // 0.0 (poor) .. 1.0 (excellent)
     double pollution_rate;  // rate of pollution increase per month
-    ZoneEnv() : water_quality(1.0), pollution_rate(0.01) {}
+    ZoneEnv() : water_quality(0.9), pollution_rate(0.01) {}
 };
 
 // Top-level structures:
@@ -61,14 +58,14 @@ using LakeMap = map<string, ZoneValue>;
 using EnvMap  = map<string, ZoneEnv>;
 
 // RNG helper function prototype
-static std::mt19937 rng_engine((unsigned)time(nullptr)); // Seed with current time or fixed seed for testing
+static std::mt19937 rng_engine; // Seed with current time or fixed seed for testing
 inline double uniform01() { return std::uniform_real_distribution<double>(0.0, 1.0)(rng_engine); }// I arbirtrarily chose 0.0 to 1.0 as the ranges
 inline int randint(int a, int b){ return std::uniform_int_distribution<int>(a, b)(rng_engine); }
 
 int age_bucket(int age_months) {
-    if (age_months < JUVENILE_AGE_THRESHOLD) return 0;
-    else if (age_months < SENIOR_AGE_THRESHOLD) return 1;
-    else return 2;
+    if(age_months < JUVENILE_AGE_THRESHOLD) return 0;
+    if(age_months < SENIOR_AGE_THRESHOLD) return 1;
+    return 2;
 }
 string make_id(int serial){
     char buffer[32];
@@ -79,13 +76,14 @@ string make_id(int serial){
 // load initial data
 bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_map) {
   ifstream fin(filename);
+  int lines = 0;
   if(fin){
     string line;
-    int lines = 0;
+    bool header_skipped = false;
     while (getline(fin, line)) {
-    if (line.empty()) continue;
+        if (line.empty()) continue;
     // Peek first token before parsing; header expected like: zone,name,age_months,health,tolerance,sex
-    string firstToken;
+        string firstToken;
     {
         string tmp = line;
         stringstream ss(tmp);
@@ -94,10 +92,10 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
     // Case-insensitive check for "zone" or "Zone"
     string firstLower = firstToken;
     transform(firstLower.begin(), firstLower.end(), firstLower.begin(), ::tolower);
-    if (firstLower == "zone" || firstLower == "zone ") {
-        // this is a header line: skip it and continue with next lines
-    } else {
-        // not a header: process this line as data
+    if(!header_skipped && (firstLower == "zone" || firstLower == "zone ")) {
+                header_skipped = true;
+                continue;
+    }
         stringstream ss(line);
         string zone,name,age_s,health_s,tol_s,sex_s;
         if(!getline(ss,zone,',')) continue;
@@ -106,26 +104,30 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
         if(!getline(ss,health_s,',')) continue;
         if(!getline(ss,tol_s,',')) continue;
         if(!getline(ss,sex_s,',')) sex_s = "M";
-        // parse values and push into maps (same code as before)
-        int age = stoi(age_s);
-        double health = stod(health_s);
-        double tol = stod(tol_s);
-        char sex = sex_s.empty() ? 'M' : sex_s[0];
-        Clownfish cf(name, age, health, tol, sex);
-        if(lake_map.find(zone)==lake_map.end()){
-            lake_map[zone] = ZoneValue{};
-            env_map[zone] = ZoneEnv{};
-        }
-        int idx = age_bucket(age);
-        lake_map[zone][idx].push_back(cf);
-        ++lines;
+        try {
+                int age = stoi(age_s);
+                double health = stod(health_s);
+                double tol = stod(tol_s);
+                char sex = sex_s.empty() ? 'M' : sex_s[0];
+                Clownfish cf(name, age, health, tol, sex);
+                if(lake_map.find(zone)==lake_map.end()){
+                    lake_map[zone] = ZoneValue{};
+                    env_map[zone] = ZoneEnv{};
+                }
+                int idx = age_bucket(age);
+                lake_map[zone][idx].push_back(cf);
+                ++lines;
+            } catch(...) {
+                continue;
+            }
     }
   }
     fin.close();
     if(lines >= 100)
     return true;
-  }
-  vector<string> zones = {"Inlet", "ReefNorth", "ReefSouth", "DeepPool", "Outlet"};
+  
+
+  vector<string> zones = {"Inlets", "ReefNorth", "ReefSouth", "DeepPool", "Outlet"};
   int serial = 1;
   for(size_t z=0; z<zones.size(); ++z){
     lake_map[zones[z]] = ZoneValue{};
@@ -145,11 +147,11 @@ bool load_initial_data(const string &filename, LakeMap &lake_map, EnvMap &env_ma
           int idx = age_bucket(age);
           lake_map[zone][idx].push_back(cf);
       }
-  return true;
+    return true;
 }
 
-void print_snapshot(int month, const LakeMap &lake_map, const EnvMap &env_map){
-    int year = (month) / MONTHS_PER_YEAR;
+void print_snapshot(int month, const LakeMap &lake_map, const EnvMap &env_map, ofstream *csv_out=nullptr){
+    int year = (month)/12;
     cout << "///////////////////////////////////////////////////\n";
     cout << "Snapshot - Month: " << month << " Year: " << year << "\n";
     cout << left << setw(14) << "Zone" 
@@ -158,7 +160,7 @@ void print_snapshot(int month, const LakeMap &lake_map, const EnvMap &env_map){
         << setw(8) << "Adults" 
         << setw(8) << "Seniors" 
         << setw(8) << "Total" << "\n";
-    for(auto &p : lake_map){
+    for(const auto &p : lake_map){
           const string &zone = p.first;
           const ZoneValue &zv = p.second;
           int j = (int)zv[0].size();
@@ -170,6 +172,11 @@ void print_snapshot(int month, const LakeMap &lake_map, const EnvMap &env_map){
           if(itenv!=env_map.end()) wq = itenv->second.water_quality;
           cout << left << setw(14) << zone << setw(8) << fixed << setprecision(2) << wq 
               << setw(8) << tot << setw(8) << j << setw(8) << a << setw(8) << s << "\n";
+          if(csv_out){
+            // CSV row: month,zone,wq,total,j,a,s
+            (*csv_out) << month << "," << zone << "," << setprecision(2) << wq << "," 
+                       << tot << "," << j << "," << a << "," << s << "\n";//CSV row
+            }
     }
     cout << "---------------------------------------------------\n";
 }
@@ -260,59 +267,92 @@ void age_and_transfer(ZoneValue &zv){
 }
 
 // 7) compute_stats
-map<string, tuple<int, int, double>> compute_stats(const LakeMap &lake_map) {
-    map<string, tuple<int, int, double>> stats;
-    for(auto &p : lake_map){
+map<string, tuple<int, int, int>> compute_stats(const LakeMap &lake_map) {
+    map<string, tuple<int, int, int>> stats;
+    for(const auto &p : lake_map){
         const ZoneValue &zv = p.second;
-        int j=(int)zv[0].size(), 
-        a=(int)zv[1].size(), s=(int)zv[2].size();
+        int j=(int)zv[0].size(), a=(int)zv[1].size(), s=(int)zv[2].size();
         stats[p.first] = make_tuple(j, a, s);
     }
     return stats;
 }
 
 // 8) main_driver (orchestrator)
-int main_driver(const string &filename) {
+int main_driver(const string &filename, int total_years, const string &snapshot_csv_name) {
   LakeMap lake_map;
   EnvMap env_map;
 
-    load_initial_data(filename, lake_map, env_map);
-    print_snapshot(0, lake_map, env_map);
+    bool ok = load_initial_data(filename, lake_map, env_map);
+    if(!ok){
+        cerr << "Error loading initial data from file: " << filename << "\n";
+        return 1;
+    }
+    int total_months = total_years * MONTHS_PER_YEAR;
+    ofstream csv_out;
+    if(!snapshot_csv_name.empty()){
+        csv_out.open(snapshot_csv_name);
+        if(csv_out){
+            csv_out << "Month,Zone,WaterQuality,Total,Youngs,Adults,Seniors\n";
+        }
+    }
 
-  for(int month=1; month<=TOTAL_MONTHS; ++month){
-      for(auto &ep : env_map){
-          update_zone_environment(ep.second, month);
-      }
-      for(auto &zp : lake_map){
-          ZoneValue &zv = zp.second;
-          ZoneEnv &env = env_map[zp.first];
-          auto dead = simulate_mortality(zv, env);
-          int births = simulate_reproduction(zv, env);
-          age_and_transfer(zv);
+    print_snapshot(0, lake_map, env_map, csv_out.is_open() ? &csv_out : nullptr);
 
-      }
-      
-      if(month % SNAPSHOT_INTERVAL == 0){
-          print_snapshot(month, lake_map, env_map);
-      }
-  }
+    for(int month=1; month<=total_months; ++month){
+        for(auto &ep : env_map){
+            update_zone_environment(ep.second, month);
+        }
+        for(auto &zp : lake_map){
+            ZoneValue &zv = zp.second;
+            ZoneEnv &env = env_map[zp.first];
+            auto dead = simulate_mortality(zv, env);
+            int births = simulate_reproduction(zv, env);
+            age_and_transfer(zv);
+        }
+        
+        if(month % SNAPSHOT_INTERVAL == 0 || month == total_months){
+            print_snapshot(month, lake_map, env_map, csv_out.is_open() ? &csv_out : nullptr);
+        }
+    }
+
   auto stats = compute_stats(lake_map);
-    cout << "\nFINAL SUMMARY (alpha)\n";
-    for(auto &p : stats){
+    cout << "\nFINAL SUMMARY (beta)\n";
+    for(const auto &p : stats){
         int j,a,s; tie(j,a,s) = p.second;
         cout << p.first << ": J="<<j<<" A="<<a<<" S="<<s<<"\n";
+    }
+    if(csv_out.is_open()){
+        csv_out.close();
     }
     return 0;
   
 }
 
 int main(int argc, char** argv) {
-  string filename = "clownfish_initial.csv";
-  if(argc >= 2){
-    filename = argv[1];
-  }
-  cout << "LakePulsing ALPHA - starting with file: " << TOTAL_MONTHS << "\n";
-  int rc = main_driver(filename);
-  cout << "LakePulsing ALPHA - finished.\n";
-  return rc;
+    string filename = "clownfish_sample.csv";
+    int years = DEFAULT_YEARS;
+    unsigned seed = (unsigned)time(nullptr);
+    string snapshot_csv = "lake_snapshot_alpha.csv";
+
+    if(argc >= 2){
+        filename = argv[1];
+    }
+    if(argc >= 3){
+        try { years = stoi(argv[2]); if(years < 1) years = DEFAULT_YEARS; }
+        catch(...) { years = DEFAULT_YEARS; }
+    }
+    if(argc >= 4){
+        try { seed = static_cast<unsigned>(stoul(string(argv[3]))); }
+        catch(...) { seed = (unsigned)time(nullptr); }
+    }
+
+    rng_engine.seed(seed);
+
+    cout << "LakePulsing BETA - starting simulation for " << years << " years using data file: " << seed << "\n";
+    cout << "input file: " << filename << "\n";
+    cout << "snapshot file: " << snapshot_csv << "\n";
+
+    int rc = main_driver(filename, years, snapshot_csv);
+    cout << "LakePulsing BETA - finished.\n";
+    return rc;
 } 

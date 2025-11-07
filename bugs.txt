@@ -1,0 +1,31 @@
+
+1) Header crash when CSV had header text.
+   Fix: load_initial_data now detects and skips a header line before parsing.
+
+2) Using non-portable <bits/stdc++.h>.
+   Fix: replaced with explicit standard includes for portability.
+
+3) RNG inconsistency (mix of rand() and mt19937).
+   Fix: removed rand(); all random draws use seeded std::mt19937.
+
+4) Alpha used a short 3-year default (confusing).
+   Fix: Beta default is 12 years; CLI allows shorter for quick tests.
+
+5) Parsing malformed numeric fields crashed the loader.
+   Fix: added try/catch around stoi/stod and skip malformed lines.
+
+6) No reproducible runs for testers.
+   Fix: accept optional seed via command-line to produce deterministic runs.
+
+7) No CSV snapshot export for analysis.
+   Fix: Beta writes yearly snapshots to snapshots.csv with header.
+
+8) Synthetic fallback produced too-small age range.
+   Fix: extended synthetic age max and diversified health/tolerance ranges.
+
+9) No graceful file-not-found behavior.
+   Fix: loader falls back to synthetic generation and informs user.
+
+10) No summary CSV/header when writing snapshots.
+    Fix: snapshots.csv now created with a header row and simple format.
+
