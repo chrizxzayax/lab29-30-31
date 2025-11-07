@@ -252,7 +252,9 @@ map<string, tuple<int, int, double>> compute_stats(const LakeMap &lake_map) {
     map<string, tuple<int, int, double>> stats;
     for(auto &p : lake_map){
         const ZoneValue &zv = p.second;
-
+        int j=(int)zv[0].size(), 
+        a=(int)zv[1].size(), s=(int)zv[2].size();
+        stats[p.first] = make_tuple(j, a, s);
     }
     return stats;
 }
@@ -275,19 +277,16 @@ int main_driver(const string &filename) {
     print_snapshot(0, lake_map, env_map);
 
   for(int month=1; month<=TOTAL_MONTHS; ++month){
-      for(auto &p : env_map){
-          update_zone_environment(p.second, month);
+      for(auto &ep : env_map){
+          update_zone_environment(ep.second, month);
       }
-      for(auto &p : lake_map){
-          const string &zone = p.first;
-          ZoneValue &zv = p.second;
-          auto itenv = env_map.find(zone);
-          if(itenv != env_map.end()){
-              const ZoneEnv &env = itenv->second;
-              simulate_mortality(zv, env);
-              simulate_reproduction(zv, env);
-              age_and_transfer(zv);
-          }
+      for(auto &zp : lake_map){
+          ZoneValue &zv = zp.second;
+          ZoneEnv &env = env_map[zp.first];
+          auto dead = simulate_mortality(zv, env);
+          int births = simulate_reproduction(zv, env);
+          age_and_transfer(zv);
+
       }
       
       if(month % SNAPSHOT_INTERVAL == 0){
