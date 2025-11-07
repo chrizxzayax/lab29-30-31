@@ -163,13 +163,18 @@ void print_snapshot(int month, const LakeMap &lake_map, const EnvMap &env_map){
 }
 
 // 3) update_zone_environment
-// - Input: ZoneEnv &env, current month
-// - Update env.water_quality using:
-//     env.water_quality -= ALPHA * env.pollution_rate
-//     env.water_quality += BETA * (1.0 - env.water_quality)
-//   Optionally decrease water_quality by SEASONAL_PULSE at a chosen month each year
-// - Clamp water_quality to [0,1]
-// - No return (mutate ZoneEnv)
+void update_zone_environment(ZoneEnv &env, int month) {
+    const double ALPHA = 0.15;
+    const double BETA = 0.04;
+    const double SEASONAL_PULSE = 0.02;
+
+    env.water_quality -= ALPHA * env.pollution_rate;
+    env.water_quality += BETA * (1.0 - env.water_quality);
+    if(month % 12 == 3) env.water_quality -= SEASONAL_PULSE;
+    env.water_quality = max(0.0, min(1.0, env.water_quality));
+}
+
+
 
 // 4) simulate_mortality
 // - Input: ZoneValue &zone_lists, const ZoneEnv &env
